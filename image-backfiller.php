@@ -10,7 +10,7 @@
  * @noinspection    ALL
  *
  * @wordpress-plugin
- * Plugin Name:             1
+ * Plugin Name:             WP-CLI Image Backfiller
  * Plugin URI:              https://wpspecialprojects.wordpress.com
  * Description:             WP-CLI utility for pulling in media after an import.
  * Version:                 1.0.0
@@ -23,11 +23,11 @@
  * License URI:             https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:             wpcomsp-image-backfiller
  * Domain Path:             /languages
- * WC requires at least:    7.4
- * WC tested up to:         7.4
  **/
 
-defined( 'ABSPATH' ) || exit;
+ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+	return;
+}
 
 // Define plugin constants.
 function_exists( 'get_plugin_data' ) || require_once ABSPATH . 'wp-admin/includes/plugin.php';
