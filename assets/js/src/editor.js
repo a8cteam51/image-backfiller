@@ -1,9 +1,9 @@
 import { createHooks } from '@wordpress/hooks';
 import domReady from '@wordpress/dom-ready';
 
-window.wpcomsp_scaffold = window.wpcomsp_scaffold || {};
-window.wpcomsp_scaffold.hooks = createHooks();
+window.wpcomsp_51_backfill = window.wpcomsp_51_backfill || {};
+window.wpcomsp_51_backfill.hooks = createHooks();
 
 domReady( () => {
-	window.wpcomsp_scaffold.hooks.doAction( 'editor.ready' );
+	window.wpcomsp_51_backfill.hooks.doAction( 'editor.ready' );
 } );
