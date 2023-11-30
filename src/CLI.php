@@ -171,10 +171,6 @@ class CLI extends WP_CLI_Command {
 						case 2:
 							$current_tag = 'a';
 							break;
-						case 3:
-							$current_tag = 'input';
-							break;
-					}
 				}
 
 				switch ( $current_tag ) {
