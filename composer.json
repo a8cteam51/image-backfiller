@@ -48,11 +48,8 @@
 
   "autoload": {
     "psr-4": {
-      "WPCOMSpecialProjects\\1\\": "src/"
-    },
-    "classmap": [
-      "models/"
-    ]
+      "WPCOMSpecialProjects\\ImageBackfiller\\": "src/"
+    }
   },
   "autoload-dev": {
 

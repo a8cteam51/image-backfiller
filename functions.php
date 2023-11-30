@@ -1,8 +1,8 @@
 <?php
 
-defined( 'ABSPATH' ) || exit;
+use WPCOMSpecialProjects\ImageBackfiller\Plugin;
 
-use WPcomSpecialProjects\Scaffold\Plugin;
+defined( 'ABSPATH' ) || exit;
 
 // region
 
@@ -29,12 +29,5 @@ function wpcomsp_51_backfill_get_plugin_instance(): Plugin {
 function wpcomsp_51_backfill_get_plugin_slug(): string {
 	return sanitize_key( WPCOMSP_51_BACKFILL_METADATA['TextDomain'] );
 }
-
-// endregion
-
-//region OTHERS
-
-require WPCOMSP_51_BACKFILL_PATH . 'includes/assets.php';
-require WPCOMSP_51_BACKFILL_PATH . 'includes/settings.php';
 
 // endregion

@@ -1,0 +1,36 @@
+# Copyright (C) 2023 WordPress.com Special Projects
+# This file is distributed under the GPL v3 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: WP-CLI Image Backfiller 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/image-backfiller\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2023-11-30T16:05:13+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.9.0\n"
+"X-Domain: wpcomsp-image-backfiller\n"
+
+#. Plugin Name of the plugin
+msgid "WP-CLI Image Backfiller"
+msgstr ""
+
+#. Plugin URI of the plugin
+#. Author URI of the plugin
+msgid "https://wpspecialprojects.wordpress.com"
+msgstr ""
+
+#. Description of the plugin
+msgid "WP-CLI utility for pulling in media after an import."
+msgstr ""
+
+#. Author of the plugin
+msgid "WordPress.com Special Projects"
+msgstr ""
+
+#: image-backfiller.php:62
+msgid "It seems like <strong>WP-CLI Image Backfiller</strong> is corrupted. Please reinstall!"
+msgstr ""

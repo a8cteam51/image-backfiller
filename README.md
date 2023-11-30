@@ -7,7 +7,7 @@
 **Requires PHP:** 8.0 \
 **Stable tag:** 1.0.0   \
 **License:** GPLv3 or later \
-**License URI:** http://www.gnu.org/licenses/gpl-3.0.html
+**License URI:** [GNU General Public License v3.0](http://www.gnu.org/licenses/gpl-3.0.html)
 
 WP-CLI utility for pulling in media after an import.
 
@@ -17,17 +17,17 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed leo ligula, aliquam
 
 ## Installation
 
-This plugin requires WooCommerce 7.4+ to run. If you're running a lower version, please update first. After you made sure that you're running a supported version of WooCommerce, you may install `1` either manually or through your site's plugins page.
+You may install `Image Backfiller` either manually or through your site's plugins page.
 
 ### INSTALL FROM WITHIN WORDPRESS
 
 1. Visit the plugins page withing your dashboard and select `Add New`.
-1. Search for `1` and click the `Install Now` button.
+1. Search for `Image Backfiller` and click the `Install Now` button.
 1. Activate the plugin from within your `Plugins` page.
 
 ### INSTALL MANUALLY
 
-1. Download the plugin from https://wordpress.org/plugins/ and unzip the archive.
+1. Download the plugin from [WordPress Plugins](https://wordpress.org/plugins/) and unzip the archive.
 1. Upload the `image-backfiller` folder to the `/wp-content/plugins/` directory.
 1. Activate the plugin through the `Plugins` menu in WordPress.
 
