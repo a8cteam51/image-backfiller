@@ -135,9 +135,10 @@ class CLI extends WP_CLI_Command {
 				)
 			);}
 		WP_CLI::log( 'Processing ' . count( $post_ids ) . " posts\n" );
-		$count           = 0;
-		$processed_count = 0;
-		$imported_images = array();
+		$count              = 0;
+		$processed_count    = 0;
+		$uploaded_image_src = '';
+		$imported_images    = array();
 
 		foreach ( $post_ids as $post_id ) {
 			$post_content = get_post( $post_id )->post_content;
@@ -279,6 +280,13 @@ class CLI extends WP_CLI_Command {
 							$image_src = str_replace( '.placeholder', '', $image_src );
 						}
 					}
+
+					// Handle the case where the image was not downloaded.
+					if ( empty ( $uploaded_image_src ) ) {
+						$this->verbose_log( " -- No uploaded image src for $image_src" );
+						continue;
+					}
+
 					$processed                     = true;
 					$imported_images[ $image_src ] = $uploaded_image_src;
 
