@@ -161,6 +161,7 @@ class CLI extends WP_CLI_Command {
 
 			for ( $pass = 1; $pass <= 2; $pass++ ) {
 				$current_tag = $tags;
+				$attr        = '';
 
 				if ( 'all' === $current_tag ) {
 					switch ( $pass ) {
@@ -177,14 +178,12 @@ class CLI extends WP_CLI_Command {
 				}
 
 				switch ( $current_tag ) {
+					case 'input':
 					case 'img':
 						$attr = 'src';
 						break;
 					case 'a':
 						$attr = 'href';
-						break;
-					case 'input':
-						$attr = 'src';
 						break;
 				}
 
@@ -200,6 +199,12 @@ class CLI extends WP_CLI_Command {
 				$this->verbose_log( "Processing post $count (#$post_id)" );
 
 				foreach ( $images as $image ) {
+					// Make sure the tag has the attribute we're looking for.
+					if ( ! $image->hasAttribute( $attr ) ) {
+						$this->verbose_log( " -- Skipping image: . No $attr attribute." );
+						continue;
+					}
+
 					$image_src = $image->attributes->getNamedItem( $attr )->nodeValue;
 					$this->verbose_log( " -- Processing image $image_src" );
 					if ( wp_parse_url( $image_src, PHP_URL_HOST ) !== $domain ) {
