@@ -141,6 +141,7 @@ class CLI extends WP_CLI_Command {
 
 		foreach ( $post_ids as $post_id ) {
 			$post_content = get_post( $post_id )->post_content;
+			$processed    = false;
 			++$count;
 
 			$this->verbose_log( "Processing post $count (#$post_id)\n" );
@@ -171,6 +172,7 @@ class CLI extends WP_CLI_Command {
 						case 2:
 							$current_tag = 'a';
 							break;
+					}
 				}
 
 				switch ( $current_tag ) {
