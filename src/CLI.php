@@ -282,6 +282,7 @@ class CLI extends WP_CLI_Command {
 					}
 
 					// Handle the case where the image was not downloaded.
+					// For example, if $import_duplicates and $can_download are both false
 					if ( empty ( $uploaded_image_src ) ) {
 						$this->verbose_log( " -- No uploaded image src for $image_src" );
 						continue;
