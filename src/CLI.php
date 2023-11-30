@@ -27,9 +27,9 @@ class CLI extends WP_CLI_Command {
 		// phpcs:disable WordPress.PHP.IniSet.display_errors_Blacklisted,WordPress.PHP.DevelopmentFunctions.prevent_path_disclosure_error_reporting,WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_error_reporting,WordPress.PHP.IniSet.memory_limit_Blacklisted,WordPress.PHP.IniSet.display_errors_Disallowed,WordPress.PHP.IniSet.memory_limit_Disallowed -- We need to set these for the CLI.
 		ini_set( 'display_errors', true );
 		error_reporting( E_ALL );
-		define( 'UPDATE_REMOTE_MEMCACHED', false );
-		define( 'ECLIPSE_SUNRISE_REDIRECT', true );
-		define( 'WP_IMPORTING', true );
+		define( 'UPDATE_REMOTE_MEMCACHED', false ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
+		define( 'ECLIPSE_SUNRISE_REDIRECT', true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
+		define( 'WP_IMPORTING', true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
 		set_time_limit( 0 );
 		ini_set( 'memory_limit', '1024M' );
 		// phpcs:enable WordPress.PHP.IniSet.display_errors_Blacklisted, WordPress.PHP.DevelopmentFunctions.prevent_path_disclosure_error_reporting,WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_error_reporting,WordPress.PHP.IniSet.memory_limit_Blacklisted,WordPress.PHP.IniSet.display_errors_Disallowed,WordPress.PHP.IniSet.memory_limit_Disallowed -- We need to set these for the CLI.
@@ -283,7 +283,7 @@ class CLI extends WP_CLI_Command {
 
 					// Handle the case where the image was not downloaded.
 					// For example, if $import_duplicates and $can_download are both false
-					if ( empty ( $uploaded_image_src ) ) {
+					if ( empty( $uploaded_image_src ) ) {
 						$this->verbose_log( " -- No uploaded image src for $image_src" );
 						continue;
 					}
