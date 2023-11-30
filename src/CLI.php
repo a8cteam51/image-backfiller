@@ -213,10 +213,8 @@ class CLI extends WP_CLI_Command {
 					}
 
 					if ( 'img' === $current_tag && strpos( $image_src, '.html' ) ) {
-						if ( strpos( $image_src, '.html' ) ) {
-							$this->verbose_log( "\t-- This is an html file" );
-							continue;
-						}
+						$this->verbose_log( "\t-- This is an html file" );
+						continue;
 					}
 
 					if ( ! $include_params
