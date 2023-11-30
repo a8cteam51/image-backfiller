@@ -174,7 +174,6 @@ class CLI extends WP_CLI_Command {
 				}
 
 				switch ( $current_tag ) {
-					case 'input':
 					case 'img':
 						$attr = 'src';
 						break;
