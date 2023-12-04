@@ -20,7 +20,7 @@
 			<property name="prefixes" type="array">
 				<element value="wpcomsp_"/>
 				<element value="wpcomsp_51_backfill_"/>
-				<element value="WPCOMSpecialProjects\1"/>
+				<element value="WPCOMSpecialProjects\ImageBackfiller"/>
 			</property>
 		</properties>
 	</rule>

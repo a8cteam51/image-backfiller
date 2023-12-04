@@ -27,9 +27,9 @@ class CLI extends WP_CLI_Command {
 		// phpcs:disable WordPress.PHP.IniSet.display_errors_Blacklisted,WordPress.PHP.DevelopmentFunctions.prevent_path_disclosure_error_reporting,WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_error_reporting,WordPress.PHP.IniSet.memory_limit_Blacklisted,WordPress.PHP.IniSet.display_errors_Disallowed,WordPress.PHP.IniSet.memory_limit_Disallowed -- We need to set these for the CLI.
 		ini_set( 'display_errors', true );
 		error_reporting( E_ALL );
-		define( 'UPDATE_REMOTE_MEMCACHED', false );
-		define( 'ECLIPSE_SUNRISE_REDIRECT', true );
-		define( 'WP_IMPORTING', true );
+		define( 'UPDATE_REMOTE_MEMCACHED', false ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
+		define( 'ECLIPSE_SUNRISE_REDIRECT', true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
+		define( 'WP_IMPORTING', true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
 		set_time_limit( 0 );
 		ini_set( 'memory_limit', '1024M' );
 		// phpcs:enable WordPress.PHP.IniSet.display_errors_Blacklisted, WordPress.PHP.DevelopmentFunctions.prevent_path_disclosure_error_reporting,WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_error_reporting,WordPress.PHP.IniSet.memory_limit_Blacklisted,WordPress.PHP.IniSet.display_errors_Disallowed,WordPress.PHP.IniSet.memory_limit_Disallowed -- We need to set these for the CLI.
@@ -115,7 +115,7 @@ class CLI extends WP_CLI_Command {
 		$this->verbose_log( sprintf( ' -- Import Duplicates: %s', $this->bool_to_string( $import_duplicates ) ) );
 		$this->verbose_log( sprintf( ' -- Include Params: %s', $this->bool_to_string( $include_params ) ) );
 		$this->verbose_log( sprintf( ' -- Dry Run: %s', $this->bool_to_string( $dry_run ) ) );
-		$this->verbose_log( sprintf( ' -- Verbose: %s\n', $this->bool_to_string( $this->verbose ) ) );
+		$this->verbose_log( sprintf( " -- Verbose: %s\n", $this->bool_to_string( $this->verbose ) ) );
 
 		global $wpdb;
 
@@ -135,12 +135,13 @@ class CLI extends WP_CLI_Command {
 				)
 			);}
 		WP_CLI::log( 'Processing ' . count( $post_ids ) . " posts\n" );
-		$count           = 0;
-		$processed_count = 0;
-		$imported_images = array();
+		$count              = 0;
+		$processed_count    = 0;
+		$imported_images    = array();
 
 		foreach ( $post_ids as $post_id ) {
 			$post_content = get_post( $post_id )->post_content;
+			$processed    = false;
 			++$count;
 
 			$this->verbose_log( "Processing post $count (#$post_id)\n" );
@@ -159,8 +160,9 @@ class CLI extends WP_CLI_Command {
 			@$dom_doc->loadHTML( $post_content ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 			libxml_use_internal_errors( false );
 
-			for ( $pass = 1; $pass <= 2; $pass++ ) {
+			for ( $pass = 1; $pass <= 3; $pass++ ) {
 				$current_tag = $tags;
+				$attr        = '';
 
 				if ( 'all' === $current_tag ) {
 					switch ( $pass ) {
@@ -173,6 +175,7 @@ class CLI extends WP_CLI_Command {
 						case 3:
 							$current_tag = 'input';
 							break;
+
 					}
 				}
 
@@ -200,6 +203,14 @@ class CLI extends WP_CLI_Command {
 				$this->verbose_log( "Processing post $count (#$post_id)" );
 
 				foreach ( $images as $image ) {
+					$uploaded_image_src = '';
+
+					// Make sure the tag has the attribute we're looking for.
+					if ( ! $image->hasAttribute( $attr ) ) {
+						$this->verbose_log( " -- Skipping image: . No $attr attribute." );
+						continue;
+					}
+
 					$image_src = $image->attributes->getNamedItem( $attr )->nodeValue;
 					$this->verbose_log( " -- Processing image $image_src" );
 					if ( wp_parse_url( $image_src, PHP_URL_HOST ) !== $domain ) {
@@ -208,10 +219,8 @@ class CLI extends WP_CLI_Command {
 					}
 
 					if ( 'img' === $current_tag && strpos( $image_src, '.html' ) ) {
-						if ( strpos( $image_src, '.html' ) ) {
-							$this->verbose_log( "\t-- This is an html file" );
-							continue;
-						}
+						$this->verbose_log( "\t-- This is an html file" );
+						continue;
 					}
 
 					if ( ! $include_params
@@ -279,6 +288,7 @@ class CLI extends WP_CLI_Command {
 							$image_src = str_replace( '.placeholder', '', $image_src );
 						}
 					}
+
 					$processed                     = true;
 					$imported_images[ $image_src ] = $uploaded_image_src;
 
