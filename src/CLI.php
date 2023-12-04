@@ -115,7 +115,7 @@ class CLI extends WP_CLI_Command {
 		$this->verbose_log( sprintf( ' -- Import Duplicates: %s', $this->bool_to_string( $import_duplicates ) ) );
 		$this->verbose_log( sprintf( ' -- Include Params: %s', $this->bool_to_string( $include_params ) ) );
 		$this->verbose_log( sprintf( ' -- Dry Run: %s', $this->bool_to_string( $dry_run ) ) );
-		$this->verbose_log( sprintf( ' -- Verbose: %s\n', $this->bool_to_string( $this->verbose ) ) );
+		$this->verbose_log( sprintf( " -- Verbose: %s\n", $this->bool_to_string( $this->verbose ) ) );
 
 		global $wpdb;
 
