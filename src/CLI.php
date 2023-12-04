@@ -137,7 +137,6 @@ class CLI extends WP_CLI_Command {
 		WP_CLI::log( 'Processing ' . count( $post_ids ) . " posts\n" );
 		$count              = 0;
 		$processed_count    = 0;
-		$uploaded_image_src = '';
 		$imported_images    = array();
 
 		foreach ( $post_ids as $post_id ) {
@@ -161,7 +160,7 @@ class CLI extends WP_CLI_Command {
 			@$dom_doc->loadHTML( $post_content ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 			libxml_use_internal_errors( false );
 
-			for ( $pass = 1; $pass <= 2; $pass++ ) {
+			for ( $pass = 1; $pass <= 3; $pass++ ) {
 				$current_tag = $tags;
 				$attr        = '';
 
@@ -173,6 +172,10 @@ class CLI extends WP_CLI_Command {
 						case 2:
 							$current_tag = 'a';
 							break;
+						case 3:
+							$current_tag = 'input';
+							break;
+
 					}
 				}
 
@@ -182,6 +185,9 @@ class CLI extends WP_CLI_Command {
 						break;
 					case 'a':
 						$attr = 'href';
+						break;
+					case 'input':
+						$attr = 'src';
 						break;
 				}
 
@@ -197,6 +203,8 @@ class CLI extends WP_CLI_Command {
 				$this->verbose_log( "Processing post $count (#$post_id)" );
 
 				foreach ( $images as $image ) {
+					$uploaded_image_src = '';
+
 					// Make sure the tag has the attribute we're looking for.
 					if ( ! $image->hasAttribute( $attr ) ) {
 						$this->verbose_log( " -- Skipping image: . No $attr attribute." );
@@ -279,13 +287,6 @@ class CLI extends WP_CLI_Command {
 						if ( false !== strpos( $image_src, '.placeholder' ) ) {
 							$image_src = str_replace( '.placeholder', '', $image_src );
 						}
-					}
-
-					// Handle the case where the image was not downloaded.
-					// For example, if $import_duplicates and $can_download are both false
-					if ( empty( $uploaded_image_src ) ) {
-						$this->verbose_log( " -- No uploaded image src for $image_src" );
-						continue;
 					}
 
 					$processed                     = true;
