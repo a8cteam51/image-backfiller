@@ -20,10 +20,6 @@
     {
       "type": "vcs",
       "url": "https://github.com/a8cteam51/team51-configs"
-    },
-    {
-      "type": "composer",
-      "url": "https://wpackagist.org"
     }
   ],
   "require": {
@@ -80,17 +76,6 @@
     "allow-plugins": {
       "composer/*": true,
       "dealerdirect/phpcodesniffer-composer-installer": true
-    }
-  },
-
-  "extra": {
-    "installer-paths": {
-      "vendor/wpackagist-plugin/{$name}/": [
-        "type:wordpress-plugin"
-      ],
-      "vendor/wpackagist-theme/{$name}/": [
-        "type:wordpress-theme"
-      ]
     }
   }
 }
