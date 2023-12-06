@@ -1,0 +1,9 @@
+.distignore
+.editorconfig
+.git
+.gitignore
+composer.*
+package.json
+package-lock.json
+.github/
+.phpcs.xml
