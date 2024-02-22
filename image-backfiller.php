@@ -15,24 +15,35 @@
  * Description:             WP-CLI utility for pulling in media after an import.
  * Version:                 1.0.0
  * Requires at least:       6.2
- * Tested up to:            6.2
+ * Tested up to:            6.4
  * Requires PHP:            8.0
  * Author:                  WordPress.com Special Projects
  * Author URI:              https://wpspecialprojects.wordpress.com
  * License:                 GPL v3 or later
  * License URI:             https://www.gnu.org/licenses/gpl-3.0.html
- * Text Domain:             wpcomsp-image-backfiller
+ * Text Domain:             image-backfiller
  * Domain Path:             /languages
  * WC requires at least:    7.4
- * WC tested up to:         7.4
+ * WC tested up to:         8.6
  **/
+
+defined( 'ABSPATH' ) || exit;
+
+//declare HPOS compatibility
+add_action(
+	'before_woocommerce_init',
+	function () {
+		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+		}
+	}
+);
+
 
 // This is a CLI-only plugin.
 if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 	return;
 }
-
-defined( 'ABSPATH' ) || exit;
 
 // Define plugin constants.
 function_exists( 'get_plugin_data' ) || require_once ABSPATH . 'wp-admin/includes/plugin.php';
