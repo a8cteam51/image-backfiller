@@ -75,28 +75,32 @@ class CLI extends WP_CLI_Command {
 	 * [--import-duplicates]
 	 * : Import images that already exist in the media library. Default is to update the image link to point to the existing image)
 	 *
-	 * [--include-params]
-	 * : Import images including the parameters in the filename. For example: image.png?w=300 will be imported as imagew300.png.
-	 *
-	 * [--dry-run]
-	 * : Run the command without making any changes
-	 *
-	 * [--verbose]
-	 * : Show detailed logs
+ * [--include-params]
+ * : Import images including the parameters in the filename. For example: image.png?w=300 will be imported as imagew300.png.
+ *
+ * [--include-href-wrapper]
+ * : Remove anchor tags that wrap images and point to the same image. Default is false.
+ *
+ * [--dry-run]
+ * : Run the command without making any changes
+ *
+ * [--verbose]
+ * : Show detailed logs
 	 *
 	 * ## EXAMPLES
 	 *     # Import images from www.mysite.com
 	 *     wp backfill get --domain="www.mysite.com"
 	 */ // phpcs:enable Squiz.Commenting.FunctionComment.MissingParamTag, Squiz.Commenting.FunctionComment.MissingReturn
 	public function get( $args, $assoc_args ) { // phpcs:ignore Squiz.Commenting.FunctionComment.Missing -- Following the WP-CLI doc standard
-		$domain            = $assoc_args['domain'];
-		$tags              = $assoc_args['tags'];
-		$num_posts         = array_key_exists( 'num-posts', $assoc_args ) ? $assoc_args['num-posts'] : -1;
-		$protocol          = array_key_exists( 'protocol', $assoc_args ) ? $assoc_args['protocol'] : 'both';
-		$dry_run           = array_key_exists( 'dry-run', $assoc_args );
-		$import_duplicates = array_key_exists( 'import-duplicates', $assoc_args );
-		$include_params    = array_key_exists( 'include-params', $assoc_args );
-		$this->verbose     = array_key_exists( 'verbose', $assoc_args );
+		$domain               = $assoc_args['domain'];
+		$tags                 = $assoc_args['tags'];
+		$num_posts            = array_key_exists( 'num-posts', $assoc_args ) ? $assoc_args['num-posts'] : -1;
+		$protocol             = array_key_exists( 'protocol', $assoc_args ) ? $assoc_args['protocol'] : 'both';
+		$dry_run              = array_key_exists( 'dry-run', $assoc_args );
+		$import_duplicates    = array_key_exists( 'import-duplicates', $assoc_args );
+		$include_params       = array_key_exists( 'include-params', $assoc_args );
+		$include_href_wrapper = array_key_exists( 'include-href-wrapper', $assoc_args );
+		$this->verbose        = array_key_exists( 'verbose', $assoc_args );
 
 		$post_ids = array();
 		if ( array_key_exists( 'posts', $assoc_args ) ) {
@@ -114,6 +118,7 @@ class CLI extends WP_CLI_Command {
 		$this->verbose_log( " -- Num Posts: $num_posts" );
 		$this->verbose_log( sprintf( ' -- Import Duplicates: %s', $this->bool_to_string( $import_duplicates ) ) );
 		$this->verbose_log( sprintf( ' -- Include Params: %s', $this->bool_to_string( $include_params ) ) );
+		$this->verbose_log( sprintf( ' -- Include Href Wrapper: %s', $this->bool_to_string( $include_href_wrapper ) ) );
 		$this->verbose_log( sprintf( ' -- Dry Run: %s', $this->bool_to_string( $dry_run ) ) );
 		$this->verbose_log( sprintf( " -- Verbose: %s\n", $this->bool_to_string( $this->verbose ) ) );
 
@@ -314,6 +319,19 @@ class CLI extends WP_CLI_Command {
 					break;
 				}
 			}
+
+			// Remove anchor wrappers if requested and if the post was processed
+			if ( $include_href_wrapper && $processed ) {
+				$this->verbose_log( " -- Removing anchor wrappers for images from domain: $domain" );
+				$original_content = $post_content;
+				$post_content     = $this->remove_image_href_wrappers( $post_content, $domain );
+
+				// Update the database if content changed and we're not in dry run mode
+				if ( $original_content !== $post_content && ! $dry_run ) {
+					$wpdb->update( $wpdb->posts, array( 'post_content' => $post_content ), array( 'ID' => $post_id ) );
+				}
+			}
+
 			$this->verbose_log( " -- Post $count (#$post_id) processed." );
 			$this->verbose_log( "\n========================================================================================\n" );
 
@@ -412,5 +430,161 @@ class CLI extends WP_CLI_Command {
 	 */
 	protected function bool_to_string( bool $boolean ): string {
 		return $boolean ? 'Yes' : 'No';
+	}
+
+	/**
+	 * Remove anchor tags that wrap images and point to image files using WP_HTML_Tag_Processor.
+	 *
+	 * @param string $content The HTML content to process.
+	 * @param string $domain  The domain to check for.
+	 *
+	 * @return string The processed HTML content.
+	 */
+	protected function remove_image_href_wrappers( string $content, string $domain ): string {
+		if ( empty( $content ) ) {
+			return $content;
+		}
+
+		// Use WP_HTML_Tag_Processor if available, otherwise fall back to regex
+		if ( class_exists( 'WP_HTML_Tag_Processor' ) ) {
+			return $this->remove_image_href_wrappers_with_processor( $content, $domain );
+		} else {
+			return $this->remove_image_href_wrappers_with_regex( $content, $domain );
+		}
+	}
+
+	/**
+	 * Remove anchor tags using WP_HTML_Tag_Processor.
+	 *
+	 * @param string $content The HTML content to process.
+	 * @param string $domain  The domain to check for.
+	 *
+	 * @return string The processed HTML content.
+	 */
+	protected function remove_image_href_wrappers_with_processor( string $content, string $domain ): string {
+		$processor = new \WP_HTML_Tag_Processor( $content );
+
+		while ( $processor->next_tag( 'A' ) ) {
+			$href = $processor->get_attribute( 'href' );
+
+			// Skip if no href or href doesn't match our domain
+			if ( ! $href || wp_parse_url( $href, PHP_URL_HOST ) !== $domain ) {
+				continue;
+			}
+
+			// Check if href points to an image file
+			if ( ! $this->is_image_url( $href ) ) {
+				continue;
+			}
+
+			// Check if the inner content contains an image from the same domain
+			if ( $this->processor_has_matching_image( $processor, $domain ) ) {
+				$this->verbose_log( "\t-- Removing anchor wrapper for image: $href" );
+				// Remove href attribute - this is the best we can do with WP_HTML_Tag_Processor
+				$processor->remove_attribute( 'href' );
+			}
+		}
+
+		return $processor->get_updated_html();
+	}
+
+	/**
+	 * Remove anchor tags using regex as fallback.
+	 *
+	 * @param string $content The HTML content to process.
+	 * @param string $domain  The domain to check for.
+	 *
+	 * @return string The processed HTML content.
+	 */
+	protected function remove_image_href_wrappers_with_regex( string $content, string $domain ): string {
+		$escaped_domain = preg_quote( $domain, '/' );
+
+		// Pattern to match <a href="domain/image"> containing <img> (any src)
+		$pattern = '/<a\s+[^>]*href=[\'"](https?:\/\/' . $escaped_domain . '\/[^\'">]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|tiff|tif)[^\'">]*)[\'"]\s*[^>]*>(.*?)<\/a>/is';
+
+		return preg_replace_callback(
+			$pattern,
+			function ( $matches ) use ( $domain ) {
+				$href       = $matches[1];
+				$inner_html = $matches[2];
+
+				// Check if inner HTML contains an img tag (from any domain)
+				if ( $this->regex_has_image_tag( $inner_html ) ) {
+					$this->verbose_log( "\t-- Removing anchor wrapper for image: $href" );
+					return $inner_html; // Return just the inner HTML, removing the <a> tag
+				}
+
+				return $matches[0]; // Return original if no match
+			},
+			$content
+		);
+	}
+
+	/**
+	 * Check if processor contains matching image using simple traversal.
+	 *
+	 * @param \WP_HTML_Tag_Processor $processor The HTML processor positioned at an anchor tag.
+	 * @param string                 $domain The domain to check for.
+	 *
+	 * @return bool True if contains an image from the domain.
+	 */
+	protected function processor_has_matching_image( \WP_HTML_Tag_Processor $processor, string $domain ): bool {
+		// Create a new processor to check the content after this anchor
+		$content        = $processor->get_updated_html();
+		$temp_processor = new \WP_HTML_Tag_Processor( $content );
+
+		// Find the next IMG tag and check if it's from our domain
+		if ( $temp_processor->next_tag( 'IMG' ) ) {
+			$src = $temp_processor->get_attribute( 'src' );
+			return $src && wp_parse_url( $src, PHP_URL_HOST ) === $domain;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check if inner HTML contains an image from the specified domain using regex.
+	 *
+	 * @param string $inner_html The inner HTML content.
+	 * @param string $domain The domain to check for.
+	 *
+	 * @return bool True if contains an image from the domain.
+	 */
+	protected function regex_has_matching_image( string $inner_html, string $domain ): bool {
+		$escaped_domain = preg_quote( $domain, '/' );
+		$pattern        = '/<img\s+[^>]*src=[\'"](https?:\/\/' . $escaped_domain . '\/[^\'">]+)[\'"]/i';
+
+		return preg_match( $pattern, $inner_html );
+	}
+
+	/**
+	 * Check if inner HTML contains any image tag using regex.
+	 *
+	 * @param string $inner_html The inner HTML content.
+	 *
+	 * @return bool True if contains an image tag.
+	 */
+	protected function regex_has_image_tag( string $inner_html ): bool {
+		$pattern = '/<img\s+[^>]*>/i';
+		return preg_match( $pattern, $inner_html );
+	}
+
+	/**
+	 * Check if a URL points to an image file.
+	 *
+	 * @param string $url The URL to check.
+	 *
+	 * @return bool True if the URL points to an image file.
+	 */
+	protected function is_image_url( string $url ): bool {
+		$image_extensions = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'tif' );
+		$path             = wp_parse_url( $url, PHP_URL_PATH );
+
+		if ( ! $path ) {
+			return false;
+		}
+
+		$extension = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+		return in_array( $extension, $image_extensions, true );
 	}
 }
