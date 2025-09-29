@@ -347,6 +347,130 @@ class CLI extends WP_CLI_Command {
 		WP_CLI::success( "Complete! $count posts processed, $processed_count updated.\n" );
 	}
 
+	// phpcs:disable Squiz.Commenting.FunctionComment.MissingParamTag, Squiz.Commenting.FunctionComment.MissingReturn -- Following the WP-CLI doc standard
+	/**
+	 * Remove anchor tags that wrap images and point to image files from specified domain.
+	 *
+	 * ## OPTIONS
+	 *
+	 * --domain=<domain>
+	 * : Domain to check for in anchor href attributes
+	 *
+	 * [--num-posts=<num-posts>]
+	 * : Number of posts to process. Default is to process all posts.
+	 *
+	 * [--posts=<posts>]
+	 * : Comma-separated list of post IDs to process.
+	 *
+	 * [--dry-run]
+	 * : Run the command without making any changes
+	 *
+	 * [--verbose]
+	 * : Show detailed logs
+	 *
+	 * ## EXAMPLES
+	 *     # Remove anchor wrappers from crystaltips.typepad.com domain
+	 *     wp backfill clean-href-wrappers --domain="crystaltips.typepad.com"
+	 *
+	 *     # Process specific posts only
+	 *     wp backfill clean-href-wrappers --domain="crystaltips.typepad.com" --posts="123,456,789"
+	 *
+	 *     # Dry run to see what would be changed
+	 *     wp backfill clean-href-wrappers --domain="crystaltips.typepad.com" --dry-run --verbose
+	 */ // phpcs:enable Squiz.Commenting.FunctionComment.MissingParamTag, Squiz.Commenting.FunctionComment.MissingReturn
+	public function clean_href_wrappers( $args, $assoc_args ) { // phpcs:ignore Squiz.Commenting.FunctionComment.Missing -- Following the WP-CLI doc standard
+		$domain        = $assoc_args['domain'];
+		$num_posts     = array_key_exists( 'num-posts', $assoc_args ) ? $assoc_args['num-posts'] : -1;
+		$dry_run       = array_key_exists( 'dry-run', $assoc_args );
+		$this->verbose = array_key_exists( 'verbose', $assoc_args );
+
+		$post_ids = array();
+		if ( array_key_exists( 'posts', $assoc_args ) ) {
+			$post_ids = explode( ',', $assoc_args['posts'] );
+		}
+
+		$this->config();
+
+		WP_CLI::log( 'Cleaning anchor href wrappers from ' . home_url() . PHP_EOL );
+
+		$this->verbose_log( 'Options:' );
+		$this->verbose_log( " -- Domain: $domain" );
+		$this->verbose_log( " -- Num Posts: $num_posts" );
+		$this->verbose_log( sprintf( ' -- Dry Run: %s', $this->bool_to_string( $dry_run ) ) );
+		$this->verbose_log( sprintf( " -- Verbose: %s\n", $this->bool_to_string( $this->verbose ) ) );
+
+		global $wpdb;
+
+		// If no specific posts provided, find all posts that contain anchor tags with the domain
+		if ( empty( $post_ids ) ) {
+			$wildcard = '%';
+			$like     = $wildcard . $wpdb->esc_like( '<a' ) . $wildcard . $wpdb->esc_like( $domain ) . $wildcard;
+
+			$post_ids = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT ID
+					FROM $wpdb->posts
+					WHERE post_type = 'post'
+					AND post_status = 'publish'
+					AND post_content LIKE %s",
+					$like
+				)
+			);
+		}
+
+		WP_CLI::log( 'Processing ' . count( $post_ids ) . " posts\n" );
+
+		$count           = 0;
+		$processed_count = 0;
+
+		foreach ( $post_ids as $post_id ) {
+			$post         = get_post( $post_id );
+			$post_content = $post->post_content;
+			++$count;
+
+			$this->verbose_log( "Processing post $count (#$post_id)" );
+
+			if ( empty( $post_content ) ) {
+				$this->verbose_log( "\t-- Skipping #$post_id. No post content." );
+				continue;
+			}
+
+			// Process the content to remove anchor wrappers
+			$original_content = $post_content;
+			$processed_content = $this->remove_image_href_wrappers( $post_content, $domain );
+
+			// Check if any changes were made
+			if ( $original_content !== $processed_content ) {
+				$this->verbose_log( "\t-- Content modified for post #$post_id" );
+				++$processed_count;
+
+				// Update the database if not in dry run mode
+				if ( ! $dry_run ) {
+					$wpdb->update( 
+						$wpdb->posts, 
+						array( 'post_content' => $processed_content ), 
+						array( 'ID' => $post_id ) 
+					);
+					$this->verbose_log( "\t-- Database updated for post #$post_id" );
+				} else {
+					$this->verbose_log( "\t-- DRY RUN: Would update post #$post_id" );
+				}
+			} else {
+				$this->verbose_log( "\t-- No changes needed for post #$post_id" );
+			}
+
+			// Stop if we've reached the limit
+			if ( $num_posts > 0 && $processed_count >= $num_posts ) {
+				$this->verbose_log( "\t-- Stopping after processing $processed_count posts." );
+				break;
+			}
+
+			$this->verbose_log( "\t-- Post $count (#$post_id) completed.\n" );
+		}
+
+		WP_CLI::success( "Complete! $count posts checked, $processed_count updated.\n" );
+	}
+
 	/**
 	 * Allowed extensions for media upload.
 	 *
@@ -462,30 +586,10 @@ class CLI extends WP_CLI_Command {
 	 * @return string The processed HTML content.
 	 */
 	protected function remove_image_href_wrappers_with_processor( string $content, string $domain ): string {
-		$processor = new \WP_HTML_Tag_Processor( $content );
-
-		while ( $processor->next_tag( 'A' ) ) {
-			$href = $processor->get_attribute( 'href' );
-
-			// Skip if no href or href doesn't match our domain
-			if ( ! $href || wp_parse_url( $href, PHP_URL_HOST ) !== $domain ) {
-				continue;
-			}
-
-			// Check if href points to an image file
-			if ( ! $this->is_image_url( $href ) ) {
-				continue;
-			}
-
-			// Check if the inner content contains an image from the same domain
-			if ( $this->processor_has_matching_image( $processor, $domain ) ) {
-				$this->verbose_log( "\t-- Removing anchor wrapper for image: $href" );
-				// Remove href attribute - this is the best we can do with WP_HTML_Tag_Processor
-				$processor->remove_attribute( 'href' );
-			}
-		}
-
-		return $processor->get_updated_html();
+		// WP_HTML_Tag_Processor doesn't have a clean way to remove entire tags while preserving inner content
+		// So we'll fall back to regex for now, but keep this method for potential future WordPress improvements
+		$this->verbose_log( "\t-- WP_HTML_Tag_Processor fallback: using regex approach" );
+		return $this->remove_image_href_wrappers_with_regex( $content, $domain );
 	}
 
 	/**
@@ -500,8 +604,10 @@ class CLI extends WP_CLI_Command {
 		$escaped_domain = preg_quote( $domain, '/' );
 
 		// Pattern to match <a href="domain/image"> containing <img> (any src)
-		$pattern = '/<a\s+[^>]*href=[\'"](https?:\/\/' . $escaped_domain . '\/[^\'">]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|tiff|tif)[^\'">]*)[\'"]\s*[^>]*>(.*?)<\/a>/is';
-
+		// This matches URLs that either:
+		// 1. End with image extensions (jpg, jpeg, png, etc.)
+		// 2. Contain .a/ anywhere in the path (for special image wrapper URLs)
+		$pattern = '/<a\s+[^>]*href=[\'"](https?:\/\/' . $escaped_domain . '\/(?:[^\'">]*\.a\/[^\'">]*|[^\'">]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|tiff|tif|html)[^\'">]*))[\'"]\s*[^>]*>(.*?)<\/a>/is';
 		return preg_replace_callback(
 			$pattern,
 			function ( $matches ) use ( $domain ) {
@@ -520,27 +626,6 @@ class CLI extends WP_CLI_Command {
 		);
 	}
 
-	/**
-	 * Check if processor contains matching image using simple traversal.
-	 *
-	 * @param \WP_HTML_Tag_Processor $processor The HTML processor positioned at an anchor tag.
-	 * @param string                 $domain The domain to check for.
-	 *
-	 * @return bool True if contains an image from the domain.
-	 */
-	protected function processor_has_matching_image( \WP_HTML_Tag_Processor $processor, string $domain ): bool {
-		// Create a new processor to check the content after this anchor
-		$content        = $processor->get_updated_html();
-		$temp_processor = new \WP_HTML_Tag_Processor( $content );
-
-		// Find the next IMG tag and check if it's from our domain
-		if ( $temp_processor->next_tag( 'IMG' ) ) {
-			$src = $temp_processor->get_attribute( 'src' );
-			return $src && wp_parse_url( $src, PHP_URL_HOST ) === $domain;
-		}
-
-		return false;
-	}
 
 	/**
 	 * Check if inner HTML contains an image from the specified domain using regex.
@@ -577,7 +662,7 @@ class CLI extends WP_CLI_Command {
 	 * @return bool True if the URL points to an image file.
 	 */
 	protected function is_image_url( string $url ): bool {
-		$image_extensions = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'tif' );
+		$image_extensions = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'tif', 'html' );
 		$path             = wp_parse_url( $url, PHP_URL_PATH );
 
 		if ( ! $path ) {
