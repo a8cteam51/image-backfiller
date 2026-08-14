@@ -258,6 +258,14 @@ class CLI extends WP_CLI_Command {
 
 						$file_array['tmp_name'] = download_url( $image_src );
 
+						// Check if download_url returned an error
+						if ( is_wp_error( $file_array['tmp_name'] ) ) {
+							$error_message = $file_array['tmp_name']->get_error_message();
+							WP_CLI::warning( " -- Image download failed for '$image_src' on post #$post_id" );
+							WP_CLI::log( ! empty( $error_message ) ? $error_message : "Unknown error occurred during image download for '$image_src' on post #$post_id" );
+							continue;
+						}
+
 						if ( empty( wp_check_filetype( $image_src )['ext'] ) ) {
 							$image_src .= '.placeholder';
 						}
@@ -269,7 +277,8 @@ class CLI extends WP_CLI_Command {
 						if ( empty( $uploaded_image_src ) ) {
 							WP_CLI::warning( " -- Image download failed for '$image_src' on post #$post_id" );
 							if ( is_wp_error( $attachment_id ) ) {
-								WP_CLI::log( $attachment_id );
+								$error_message = $attachment_id->get_error_message();
+								WP_CLI::log( ! empty( $error_message ) ? $error_message : "Unknown error occurred during image upload for '$image_src' on post #$post_id" );
 							}
 							continue;
 						}
